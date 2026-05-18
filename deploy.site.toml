@@ -2,7 +2,7 @@ name = "workshop"
 domain = "workshop.schappet.com"
 
 deploy_dir = "/home/www/workshop"
-build_dir = "/home/schappet/git/workshop.schappet.com"
+build_dir = "~//git/workshop.schappet.com"
 
 git_repo = "git@github.com:jschappet/workshop.git"
 git_branch = "main"
