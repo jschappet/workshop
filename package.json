@@ -1,0 +1,31 @@
+{
+  "name": "workshop.schappet.com",
+  "version": "1.0.0",
+  "description": "A collaborative workshop for building practical skills, shared infrastructure, and community through hands-on participation.",
+  "keywords": [
+    "workshop"
+  ],
+  "homepage": "https://github.com/jschappet/workshop#readme",
+  "bugs": {
+    "url": "https://github.com/jschappet/workshop/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/jschappet/workshop.git"
+  },
+  "license": "MIT",
+  "author": "schappet <schappet@revillagesociety.org>",
+  "type": "commonjs",
+  "main": ".eleventy.js",
+  "scripts": {
+  "dev": "npx @11ty/eleventy --serve",
+  "build": "npx @11ty/eleventy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^4.3.0"
+  }
+}

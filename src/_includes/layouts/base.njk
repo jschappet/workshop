@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{{ title or "Workshop" }}</title>
+
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+
+<body class="bg-stone-100 text-stone-900 min-h-screen">
+
+  {% include "partials/header.njk" %}
+
+  <main class="max-w-4xl mx-auto px-6 py-12">
+    {{ content | safe }}
+  </main>
+
+  {% include "partials/footer.njk" %}
+
+</body>
+</html>
