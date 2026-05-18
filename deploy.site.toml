@@ -1,0 +1,22 @@
+name = "workshop"
+domain = "workshop.schappet.com"
+
+deploy_dir = "/home/www/workshop"
+build_dir = "/home/schappet/git/workshop.schappet.com"
+
+git_repo = "git@github.com:jschappet/workshop.git"
+git_branch = "main"
+
+build_cmd = "npm run build"
+output_dir = "dist"
+
+backend = ""
+
+[hooks]
+pre_build = ""
+post_build = ""
+pre_deploy = ""
+post_deploy = ""
+
+[paths]
+errors = "/var/www/errors"
