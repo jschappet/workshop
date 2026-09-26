@@ -1,3 +1,9 @@
+---
+title: Inventory
+date: 2026-09-26 
+permalink: /inventory/
+---
+
 # Workshop Inventory List 
 
 ## Computers
