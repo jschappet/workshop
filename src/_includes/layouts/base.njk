@@ -7,6 +7,120 @@
   <title>{{ title or "Workshop" }}</title>
 
   <link rel="stylesheet" href="/assets/css/styles.css">
+  <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css"
+>
+
+<style>
+  .workshop-content {
+    max-width: 76ch;
+    margin-inline: auto;
+    line-height: 1.75;
+  }
+
+  .workshop-content h2 {
+    margin-top: 2.5rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .workshop-content h3 {
+    margin-top: 1.75rem;
+    font-size: 1.2rem;
+    font-weight: 650;
+  }
+
+  .workshop-content p,
+  .workshop-content ul,
+  .workshop-content ol {
+    margin-block: 1rem;
+  }
+
+  .workshop-content ul,
+  .workshop-content ol {
+    padding-left: 1.5rem;
+  }
+
+  .workshop-content ul { list-style: disc; }
+  .workshop-content ol { list-style: decimal; }
+
+  .workshop-content a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .workshop-content :not(pre) > code {
+    padding: .15rem .35rem;
+    border-radius: .3rem;
+    background: #eef2f6;
+    color: #243247;
+    font-size: .9em;
+  }
+
+  .workshop-content pre {
+    margin-block: 1.5rem;
+    padding: 1.25rem;
+    overflow-x: auto;
+    border-radius: .75rem;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.55;
+    tab-size: 2;
+  }
+
+  .workshop-content pre code.hljs {
+    padding: 0;
+    background: transparent;
+  }
+
+  .workshop-content pre code {
+    display: block;
+    font-size: .9rem;
+    white-space: pre;
+  }
+
+  .workshop-content table {
+    width: 100%;
+    margin-block: 1.5rem;
+    border-collapse: collapse;
+    font-size: .95rem;
+  }
+
+  .workshop-content th,
+  .workshop-content td {
+    padding: .75rem;
+    border: 1px solid #dbe2ea;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .workshop-content th {
+    background: #eef2f6;
+    font-weight: 700;
+  }
+
+  .workshop-content tbody tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  .workshop-content .mermaid {
+    margin-block: 1.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    border: 1px solid #dbe2ea;
+    border-radius: .75rem;
+    background: #fff;
+    text-align: center;
+  }
+
+  .workshop-content .mermaid svg {
+    display: block;
+    margin-inline: auto;
+    height: auto;
+  }
+</style>
 </head>
 
 <body class="bg-stone-100 text-stone-900 min-h-screen">
@@ -19,5 +133,59 @@
 
   {% include "partials/footer.njk" %}
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
+<script type="module">
+  const root = document.querySelector(".workshop-content");
+
+  if (root) {
+    // Highlight ordinary code; leave Mermaid source untouched.
+    root.querySelectorAll("pre > code").forEach((code) => {
+      if (!code.classList.contains("language-mermaid")) {
+        window.hljs?.highlightElement(code);
+      }
+    });
+
+    const sources = [
+      ...root.querySelectorAll("pre > code.language-mermaid")
+    ];
+
+    if (sources.length) {
+      try {
+        const { default: mermaid } = await import(
+          "https://cdn.jsdelivr.net/npm/mermaid@11.16.1/dist/mermaid.esm.min.mjs"
+        );
+
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: "default"
+        });
+
+        for (const code of sources) {
+          const diagram = document.createElement("div");
+          diagram.className = "mermaid";
+
+          // textContent decodes &quot; and &gt; correctly.
+          const source = code.textContent.trim();
+          diagram.textContent = source;
+
+          const original = code.parentElement;
+          original.replaceWith(diagram);
+
+          try {
+            await mermaid.run({ nodes: [diagram] });
+          } catch (error) {
+            // Restore readable source if a diagram fails.
+            diagram.replaceWith(original);
+            console.error("Mermaid diagram failed:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Could not load Mermaid:", error);
+      }
+    }
+  }
+</script>
 </body>
 </html>
