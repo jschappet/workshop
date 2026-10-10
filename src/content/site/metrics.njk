@@ -1,0 +1,27 @@
+---
+layout: layouts/base.njk
+title: Sensor metrics · Workshop
+permalink: /metrics/
+---
+<link rel="stylesheet" href="/assets/css/metrics.css">
+<section class="metrics" id="metrics-app" data-api-base="{{ metrics.apiBase | escape }}">
+  <div class="metrics-heading"><div><p class="eyebrow">WORKSHOP / OBSERVATIONS</p><h1>Sensor metrics</h1><p class="intro">A closer look at what’s happening in the workshop.</p></div><button id="refresh" type="button">Refresh now</button></div>
+  <form id="connection" class="connection">
+    <label for="api-base">Sensor API address</label>
+    <div><input id="api-base" type="text" required spellcheck="false" aria-describedby="connection-help"><button type="submit">Connect</button></div>
+    <p id="connection-help">Use the Heron address that receives your sensor reports, ending in /api/iot.</p>
+  </form>
+  <div class="metrics-toolbar">
+    <label for="device">Device<select id="device" disabled><option value="">Loading devices…</option></select></label>
+    <label for="range">Time range<select id="range"><option value="1">Last hour</option><option value="24" selected>Last 24 hours</option><option value="168">Last 7 days</option></select></label>
+    <label class="auto"><input id="auto-refresh" type="checkbox" checked> Refresh every 30 seconds</label>
+  </div>
+  <p id="status" role="status" aria-live="polite">Connecting to sensors…</p>
+  <div id="device-info" hidden><span id="device-description"></span> <a id="sensor-link" target="_blank" rel="noopener noreferrer" hidden>Open sensor ↗</a><p class="muted">Sensor links use a local network address; you must be on a network that can reach the device.</p></div>
+  <div id="summary" class="metric-cards"></div>
+  <p id="coverage" class="muted"></p><button id="load-more" type="button" hidden>Load older reports</button>
+  <div id="charts" class="charts"></div>
+  <details id="readings-panel"><summary>Recorded readings</summary><div class="table-scroll"><table><caption>Readings in the selected time range, newest first</caption><thead><tr><th>Observed</th><th>Sensor</th><th>Reading</th><th>Received</th></tr></thead><tbody id="readings"></tbody></table></div></details>
+  <noscript>This viewer needs JavaScript to load readings from Heron.</noscript>
+</section>
+<script type="module" src="/assets/js/metrics.js"></script>
