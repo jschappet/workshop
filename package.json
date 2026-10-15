@@ -18,11 +18,13 @@
   "type": "commonjs",
   "main": ".eleventy.js",
   "scripts": {
-  "dev": "npx @11ty/eleventy --serve",
-  "build": "npx @11ty/eleventy",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "eleventy --serve --port=8580",
+    "build": "eleventy",
+    "test": "node --test tests/*.test.mjs",
+    "watch": "eleventy --watch"
   },
   "devDependencies": {
+    "@11ty/eleventy": "^3.1.2",
     "@tailwindcss/postcss": "^4.3.0",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
