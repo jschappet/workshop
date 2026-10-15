@@ -1,0 +1,21 @@
+---
+layout: layouts/base.njk
+title: Sign in · Workshop
+permalink: /login/
+---
+<section class="workshop-content" x-data="workshopLogin" x-init="checkSession()">
+  <h1>Workshop sign in</h1>
+  <p>Sign in with your existing account to view sensor metrics.</p>
+  <p role="status" aria-live="polite" x-text="message"></p>
+  <form @submit.prevent="login()" x-show="!signedIn">
+    <p><label>Username <input required autocomplete="username" x-model="username"></label></p>
+    <p><label>Password <input required type="password" autocomplete="current-password" x-model="password"></label></p>
+    <button type="submit" :disabled="busy">Sign in</button>
+  </form>
+  <div x-show="signedIn" x-cloak>
+    <p><a href="/metrics/">View sensor metrics</a></p>
+    <button type="button" @click="logout()" :disabled="busy">Sign out</button>
+  </div>
+</section>
+<style>[x-cloak] { display: none !important; }</style>
+<script src="/assets/js/login.js"></script>

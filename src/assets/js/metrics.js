@@ -5,22 +5,16 @@ const state = { devices: [], rows: [], next: null, controller: null, busy: false
 const date = seconds => Number.isFinite(seconds) ? new Date(seconds * 1000).toLocaleString() : 'Unknown';
 function element(tag, text, className) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; }
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
-let base = root.dataset.apiBase;
-try { base = sessionStorage.getItem('workshop.metrics.api') || base; } catch { /* storage unavailable */ }
-$('api-base').value = base;
-function normalizeBase(value) {
-  const url = new URL(value, location.origin);
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error('Enter an HTTP or HTTPS API address without credentials, query, or fragment.');
-  return url.href.replace(/\/$/, '');
-}
-async function request(url, signal) {
-  const response = await fetch(url, { signal, headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
-  if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'The server denied access to metrics. Check the server’s viewer access settings.' : `The server returned ${response.status}. Check the Sensor API address.`);
-  try { return await response.json(); } catch { throw new Error('The API returned a page instead of JSON. Check the Sensor API address.'); }
+const apiReady = new Promise(resolve => {
+  if (window.Alpine?.store('api')) resolve();
+  else document.addEventListener('alpine:initialized', resolve, { once: true });
+});
+async function request(name, params, signal) {
+  await apiReady;
+  return Alpine.store('api').call(name, params, null, { signal });
 }
 async function pageRows(device, cursor, signal) {
-  const url = `${base}/devices/${encodeURIComponent(device)}/metrics?limit=500${cursor === null ? '' : `&before_id=${cursor}`}`;
-  const page = await request(url, signal);
+  const page = await request('iot_device_metrics', { device_id: device, limit: 500, before_id: cursor }, signal);
   if (!Array.isArray(page.metrics) || !(page.next_before_id === null || Number.isSafeInteger(page.next_before_id) && page.next_before_id > 0)) throw new Error('Unexpected metric response from the server.');
   return page;
 }
@@ -31,9 +25,8 @@ async function load({ devices = false, more = false } = {}) {
   state.busy = true; $('refresh').disabled = true; $('load-more').disabled = true;
   status('Loading sensor reports…');
   try {
-    base = normalizeBase($('api-base').value.trim());
     if (devices) {
-      const list = await request(`${base}/devices`, controller.signal);
+      const list = await request('iot_devices', {}, controller.signal);
       if (!Array.isArray(list.devices)) throw new Error('Unexpected device response from the server.');
       const previous = $('device').value;
       state.devices = list.devices;
@@ -67,6 +60,11 @@ async function load({ devices = false, more = false } = {}) {
     render(); status(`Updated ${state.updated.toLocaleTimeString()} · ${rows.length.toLocaleString()} stored reports loaded`);
   } catch (error) {
     if (controller !== state.controller) return;
+    if (error.status === 401 || error.status === 403) {
+      state.rows = []; state.devices = []; state.next = null; render();
+      status('Please sign in to view sensor metrics. Use the sign-in link above.', true);
+      return;
+    }
     status(controller.signal.aborted ? 'Loading timed out. Check the API address and try again.' : `${error.message} Previously loaded readings, if any, have not been refreshed.`, true);
   } finally {
     clearTimeout(timeout);
@@ -124,7 +122,6 @@ function render() {
     const tr = element('tr'); for (const text of [date(reading.observed_at_unix), reading.schema, value, date(row.received_at_unix)]) tr.append(element('td', text)); $('readings').append(tr);
   }
 }
-$('connection').addEventListener('submit', event => { event.preventDefault(); state.rows = []; state.next = null; state.devices = []; render(); try { sessionStorage.setItem('workshop.metrics.api', normalizeBase($('api-base').value.trim())); } catch { /* load reports validation errors */ } load({ devices: true }); });
 $('refresh').addEventListener('click', () => load({ devices: true }));
 $('device').addEventListener('change', () => { state.rows = []; state.next = null; render(); load(); });
 $('range').addEventListener('change', render);
