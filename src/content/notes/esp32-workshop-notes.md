@@ -8,6 +8,8 @@ layout: "layouts/notes.njk"
 
 Progress notes — October 5, 2026
 
+New to ESP32? Start with [Challenge - Blink an LED on ESP32](/notes/esp32/blink-led/), a step-by-step guide from installing Arduino IDE to uploading your first program.
+
 We are building a small ESP32 sensor node that can read its surroundings, provide a local web interface, and introduce itself to the ReVillage backend. Temperature and humidity are the first working measurements. The larger aim is to reuse the same setup, identity, networking, and data infrastructure for other sensors, including the river monitor.
 
 ## Where we are
