@@ -1,0 +1,16 @@
+---
+layout: layouts/base.njk
+title: Device approvals · Workshop
+permalink: /devices/
+---
+<link rel="stylesheet" href="/assets/css/metrics.css">
+<section class="metrics">
+  <div class="metrics-heading"><div><p class="eyebrow">WORKSHOP / ADMINISTRATION</p><h1>Device approvals</h1></div><button id="refresh-enrollments" type="button">Refresh</button></div>
+  <p>Recognize the device metadata and sample values before approving. Devices submit at most five provisional samples and retry every three hours while waiting.</p>
+  <p><a href="/login/">Sign in</a> · <a href="/metrics/">View metrics</a></p>
+  <p id="enrollment-status" role="status" aria-live="polite">Loading device enrollments…</p>
+  <div id="enrollments"></div>
+  <button id="more-enrollments" type="button" hidden>Load older enrollments</button>
+  <noscript>JavaScript is required to review and approve devices.</noscript>
+</section>
+<script type="module" src="/assets/js/devices.js"></script>

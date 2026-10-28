@@ -118,7 +118,7 @@ function render() {
   chart('Temperature · °C', temperatures, '°C'); chart('Humidity · %', humidity, '%'); chart('Touches · per reporting interval', touches, 'touches', true);
   for (const row of [...rows].reverse()) {
     const reading = row.reading, data = reading.data || {};
-    const value = reading.schema === 'temperature' ? `${data.temperature_c} °C · ${data.humidity_percent}% humidity` : reading.schema === 'touch_count' ? `${data.count} touches · ${data.total_count} since boot` : 'Unsupported reading type';
+    const value = reading.schema === 'temperature' ? `${data.temperature_c} °C · ${data.humidity_percent}% humidity` : reading.schema === 'touch_count' ? `${data.count} touches · ${data.total_count} since boot` : JSON.stringify(data);
     const tr = element('tr'); for (const text of [date(reading.observed_at_unix), reading.schema, value, date(row.received_at_unix)]) tr.append(element('td', text)); $('readings').append(tr);
   }
 }
