@@ -1,0 +1,43 @@
+---
+layout: layouts/base.njk
+title: Pantry · Workshop
+permalink: /inventory/pantry/
+---
+<link rel="stylesheet" href="/assets/css/metrics.css">
+<link rel="stylesheet" href="/assets/css/pantry.css">
+<section class="metrics pantry">
+ <div class="metrics-heading"><div><p class="eyebrow">WORKSHOP / INVENTORY</p><h1>Our shared pantry</h1><p class="intro">Know what’s here. Use it in time. Plan the next restock.</p></div><button id="pantry-refresh" type="button">Refresh</button></div>
+ <p><a href="/inventory/">Equipment inventory</a> · <a id="pantry-account" href="/login/?next=%2Finventory%2Fpantry%2F">Account</a></p>
+ <p id="pantry-status" role="status" aria-live="polite">Loading pantry…</p>
+ <div id="pantry-content" hidden>
+  <div class="metric-cards" id="pantry-totals"></div>
+  <div id="pantry-setup" class="connection" hidden><h2>Start with Genevieve’s pantry list</h2><p>Add 12 foods, four categories and three storage locations. Stock starts at zero until you record the containers you have.</p><button id="pantry-seed" type="button">Load starter list</button></div>
+  <nav class="pantry-tabs" aria-label="Pantry sections"><a href="#rotation">Use next</a><a href="#stock">Stock & targets</a><a href="#record">Add stock</a><a href="#manage">Manage</a><a href="#history">History</a></nav>
+  <section id="rotation"><h2>Use next</h2><p class="muted">Opened containers first, then earliest expiration. Expired containers are flagged for review.</p><div id="pantry-batches" class="pantry-batches"></div></section>
+  <section id="stock"><h2>Six-month stock & shopping list</h2><p class="muted">Totals include all remaining stock, including expired batches. Record discarded food to remove it from these totals.</p><div class="table-scroll"><table><thead><tr><th>Food</th><th>On hand</th><th>Target</th><th>To buy</th><th>Stocked</th></tr></thead><tbody id="pantry-items"></tbody></table></div></section>
+  <section id="record"><h2>Add a container</h2><form id="batch-form" class="pantry-form">
+   <label>Food<select name="item_id" data-options="items" required></select></label>
+   <label>Storage location<select name="location_id" data-options="locations" required></select></label>
+   <label>Weight remaining (lbs)<input name="quantity_lbs" type="number" min="0.001" max="1000000" step="any" required></label>
+   <label>Purchased<input name="purchase_date" type="date" required></label>
+   <label>Expires<input name="expiration_date" type="date" required></label>
+   <label>Container<select name="container_type"><option>5-Gal Bucket</option><option>Glass Jar</option><option>Mylar Bag</option><option>Original Sack</option></select></label>
+   <label class="check"><input name="is_opened" type="checkbox"> Already opened</label>
+   <label>Notes<textarea name="notes" maxlength="4000" rows="2"></textarea></label>
+   <button type="submit">Add container</button>
+  </form></section>
+  <section id="manage"><h2>Manage the pantry</h2><p id="pantry-audits" class="muted"></p>
+   <details><summary>Add a food</summary><form id="item-form" class="pantry-form">
+    <label>Name<input name="name" maxlength="160" required></label><label>Category<select name="category_id" data-options="categories" required></select></label>
+    <label>Six-month target (lbs)<input name="target_lbs" type="number" min="0.001" max="1000000" step="any" required></label>
+    <label class="check"><input name="is_sproutable" type="checkbox"> Sproutable</label><button type="submit">Add food</button>
+   </form></details>
+   <details><summary>Change a target</summary><form id="target-form" class="pantry-form"><label>Food<select name="item_id" data-options="items" required></select></label><label>New target (lbs)<input name="target_lbs" type="number" min="0.001" max="1000000" step="any" required></label><button type="submit">Save target</button></form></details>
+   <details><summary>Add a storage location</summary><form id="location-form" class="pantry-form"><label>Name<input name="name" maxlength="160" required></label><button type="submit">Add location</button></form></details>
+   <details><summary>Add a category</summary><form id="category-form" class="pantry-form"><label>Name<input name="name" maxlength="160" required></label><label>First audit month<select name="audit_month">{% for month in ["January","February","March","April","May","June","July","August","September","October","November","December"] %}<option value="{{ loop.index }}">{{ month }}</option>{% endfor %}</select></label><p class="muted">The second audit is six months later.</p><button type="submit">Add category</button></form></details>
+  </section>
+  <section id="history"><h2>Recent use</h2><p class="muted">The latest 100 entries, including emptied containers.</p><div id="pantry-history"></div></section>
+ </div>
+ <noscript>Enable JavaScript to view and manage pantry inventory.</noscript>
+</section>
+<script type="module" src="/assets/js/pantry.js"></script>

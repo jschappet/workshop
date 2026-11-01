@@ -5,7 +5,7 @@ permalink: /login/
 ---
 <section class="workshop-content" x-data="workshopLogin" x-init="checkSession()">
   <h1>Workshop sign in</h1>
-  <p>Sign in with your existing account to view sensor metrics.</p>
+  <p>Sign in with your existing account to use the workshop pantry and sensor metrics.</p>
   <p role="status" aria-live="polite" x-text="message"></p>
   <form @submit.prevent="login()" x-show="!signedIn">
     <p><label>Username <input required autocomplete="username" x-model="username"></label></p>
@@ -13,7 +13,7 @@ permalink: /login/
     <button type="submit" :disabled="busy">Sign in</button>
   </form>
   <div x-show="signedIn" x-cloak>
-    <p><a href="/metrics/">View sensor metrics</a></p>
+    <p><a :href="destination">Continue</a> · <a href="/inventory/pantry/">Open pantry</a> · <a href="/metrics/">View sensor metrics</a></p>
     <button type="button" @click="logout()" :disabled="busy">Sign out</button>
   </div>
 </section>
