@@ -1,11 +1,13 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('workshopLogin', () => ({
     username: '', password: '', busy: false, signedIn: false, message: '',
+    destination: new URLSearchParams(window.location.search).get('next') === '/inventory/pantry/' ? '/inventory/pantry/' : '/metrics/',
     async checkSession() {
       try {
         const profile = await Alpine.store('api').call('profile_json');
-        this.signedIn = profile.authenticated;
-      } catch { this.message = 'Sign in to continue.'; }
+        this.signedIn = profile.authenticated === true;
+        this.message = this.signedIn ? 'You are signed in.' : 'Sign in to continue.';
+      } catch { this.signedIn = false; this.message = 'Unable to check your session. Please try again.'; }
     },
     async login() {
       this.busy = true;
@@ -15,7 +17,7 @@ document.addEventListener('alpine:init', () => {
           username: this.username, password: this.password
         }));
         this.password = '';
-        window.location.assign('/metrics/');
+        window.location.assign(this.destination);
       } catch {
         this.message = 'Unable to sign in. Check your username and password and try again.';
       } finally { this.busy = false; }

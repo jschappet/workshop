@@ -4,7 +4,10 @@ date: 2026-09-26
 permalink: /inventory/
 ---
 
-# Workshop Inventory List 
+# Workshop Inventory List
+
+[Open the shared pantry →](/inventory/pantry/)
+
 
 ## Computers
 - 21.5" iMac Model # A1311

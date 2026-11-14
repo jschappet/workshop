@@ -1,0 +1,23 @@
+name: JavaScript dependency security
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '23 9 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ["."]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Audit production and build dependencies without installing packages
+        working-directory: ${{ matrix.directory }}
+        run: npm audit --package-lock-only --audit-level=high

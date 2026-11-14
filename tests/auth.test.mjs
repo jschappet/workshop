@@ -16,3 +16,15 @@ test('login redirects only after success and logout clears state', async () => {
   fail=false; await form.login(); assert.equal(destination,'/metrics/'); assert.equal(form.password,'');
   form.signedIn=true; await form.logout(); assert.equal(form.signedIn,false);
 });
+
+test('pantry login returns to pantry and session failures clear stale signed-in state',async()=>{
+ let factory,destination,fail=false;
+ const context=vm.createContext({URLSearchParams,document:{addEventListener:(_,fn)=>fn()},
+ window:{location:{search:'?next=%2Finventory%2Fpantry%2F',assign:url=>destination=url}},
+ Alpine:{data:(_,fn)=>factory=fn,store:()=>({call:async()=>{if(fail)throw Error('offline');return {authenticated:true};}})}});
+ vm.runInContext(login,context); const form=factory();
+ await form.checkSession();assert.equal(form.signedIn,true);
+ await form.login();assert.equal(destination,'/inventory/pantry/');
+ fail=true;await form.checkSession();assert.equal(form.signedIn,false);assert.match(form.message,/Unable to check/);
+ context.window.location.search='?next=https://example.com';assert.equal(factory().destination,'/metrics/');
+});
