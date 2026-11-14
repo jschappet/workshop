@@ -39,6 +39,8 @@ We are building from where we actually are — not pretending to already be some
 
 ## What We Are Building
 
+See our [MeshCore workshop notes](/meshcore/) for an experiment in off-grid messaging.
+
 Over time, this may become:
 
 * a shared workshop,
