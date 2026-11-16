@@ -8,6 +8,8 @@ layout: layouts/notes.njk
 
 We’re experimenting with off-grid text messaging at the workshop. MeshCore uses low-power LoRa radios to send messages without Wi-Fi or cell service. A companion radio connects to a phone or computer for messaging, and a repeater can relay messages between radios that are out of direct range. [MeshCore project](https://meshcore.io/)
 
+To see radio activity, open [Workshop Metrics](/metrics/), sign in, and select MeshCore Bot. The charts show public messages, direct messages, and reported neighbors over time. Open Recorded readings for per-channel counts and listening durations.
+
 ## Hardware we’re testing
 
 - **RAKwireless WisBlock starter kit (US915).** This kit pairs a RAK19007 base board with a RAK4631 radio module. [Amazon listing](https://www.amazon.com/dp/B0CHKZJK9C)
