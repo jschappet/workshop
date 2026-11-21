@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { inRange, series, sensorUrl } from '../src/assets/js/metrics-data.mjs';
-test('metrics renders API readings and clears them when session expires', async () => {
+test('metrics renders recent readings promptly, loads the full selected week, and clears on session expiry', async () => {
   class Element {
     constructor(tag) { this.tag=tag; this.children=[]; this.value=''; this.classList={toggle(){}}; }
     append(...nodes) { this.children.push(...nodes); if(!this.value && nodes[0]?.value)this.value=nodes[0].value; }
@@ -37,14 +37,25 @@ test('metrics renders API readings and clears them when session expires', async 
   const continuation = new Promise(resolve => { continuationRequested = resolve; });
   const pendingPage = new Promise(resolve => { releaseContinuation = resolve; });
   const emptyPage = { metrics: [], next_before_id: null, next_before_observed_at: null };
+  const olderPages = new Map([2, 4, 6].map((daysAgo, index) => {
+    const row = { ...meshReports.at(-1), id: index + 10, reading: {
+      ...meshReports.at(-1).reading, observed_at_unix: now - daysAgo * 86400,
+    } };
+    return [index + 9, {
+      ...emptyPage,
+      metrics: [row],
+      ...(daysAgo < 6 && { next_before_id: row.id, next_before_observed_at: row.reading.observed_at_unix }),
+    }];
+  }));
   const api={call: async (name, params) => {
     calls.push({name,params});
     if(denied) throw Object.assign(Error('denied'),{status:401});
     if(name==='iot_devices')return {devices:[{device_id:'sensor',last_seen_unix:Date.now()/1000}]};
-    if (params.before_id) {
+    if (params.before_id === 9) {
       continuationRequested();
       return pendingPage;
     }
+    if (params.before_id) return olderPages.get(params.before_id);
     if (params.until - params.since === 7 * 86400) {
       return { metrics: meshReports, next_before_id: 9, next_before_observed_at: now - 3200 };
     }
@@ -82,8 +93,13 @@ test('metrics renders API readings and clears them when session expires', async 
   assert.equal(next.until, week.until);
   assert.equal(next.before_id, 9);
   assert.equal(next.before_observed_at, now - 3200);
-  releaseContinuation(emptyPage);
+  releaseContinuation(olderPages.get(9));
   await rangeLoad;
+  const allWeekCalls = metricCalls().slice(1);
+  assert.deepEqual(allWeekCalls.map(call => call.before_id), [undefined, 9, 10, 11]);
+  assert.ok(allWeekCalls.every(call => call.since === week.since && call.until === week.until));
+  assert.equal(get('readings').children.length, meshReports.length + 3);
+  assert.equal(get('readings').children.at(-1).children[0].textContent, new Date((now - 6 * 86400) * 1000).toLocaleString());
   assert.equal(get('load-more').hidden, true);
 
   denied=true; await vm.runInContext('load({devices:true})',context);
