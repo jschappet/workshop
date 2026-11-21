@@ -34,9 +34,9 @@ Deployment requires both repositories:
 
 Metrics requests use the selected observation-time window, which defaults to
 the last 24 hours. The first page renders as soon as it arrives. The viewer
-automatically loads up to three pages of 500 reports within that window, then
-marks the period partial if more remain. Load older reports fetches one more
-page within the selected period. Choose a longer range to request earlier
+automatically loads pages of up to 500 reports until it completes that window.
+While pages are still loading, totals are marked partial. If a page fails,
+Load older reports resumes from the last successful page. Choose a longer range to request earlier
 observations. Times are shown in the browser's local timezone. Touch totals sum interval counts, never boot totals.
 Intervals are included by their observation timestamp. Chart gaps longer than
 10 minutes stay disconnected. The display does not fabricate missing samples.

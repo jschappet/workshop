@@ -9,17 +9,25 @@ const apiReady = new Promise(resolve => {
   if (window.Alpine?.store('api')) resolve();
   else document.addEventListener('alpine:initialized', resolve, { once: true });
 });
-async function request(name, params, signal) {
-  await apiReady;
-  return Alpine.store('api').call(name, params, null, { signal });
+async function request(name, params, controller) {
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    await apiReady;
+    controller.signal.throwIfAborted();
+    const result = await Alpine.store('api').call(name, params, null, { signal: controller.signal });
+    controller.signal.throwIfAborted();
+    return result;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
-async function pageRows(device, bounds, cursor, signal) {
+async function pageRows(device, bounds, cursor, controller) {
   const page = await request('iot_device_metrics', {
     device_id: device,
     limit: 500,
     ...bounds,
     ...(cursor && { before_id: cursor.id, before_observed_at: cursor.time }),
-  }, signal);
+  }, controller);
   const id = page.next_before_id;
   const time = page.next_before_observed_at;
   if (!Array.isArray(page.metrics) ||
@@ -43,12 +51,11 @@ async function load({ devices = false, more = false } = {}) {
   if (more && !state.next) return;
   state.controller?.abort();
   const controller = new AbortController(); state.controller = controller;
-  const timeout = setTimeout(() => controller.abort(), 30000);
   state.busy = true; $('refresh').disabled = true; $('load-more').disabled = true;
   status('Loading sensor reports…');
   try {
     if (devices) {
-      const list = await request('iot_devices', {}, controller.signal);
+      const list = await request('iot_devices', {}, controller);
       controller.signal.throwIfAborted();
       if (!Array.isArray(list.devices)) throw new Error('Unexpected device response from the server.');
       const previous = $('device').value;
@@ -73,10 +80,9 @@ async function load({ devices = false, more = false } = {}) {
     const bounds = more ? state.bounds : { since: until - Number($('range').value) * 3600, until };
     let cursor = more ? state.next : null;
     let rows = more ? state.rows : [];
-    // Show the first page immediately and cap automatic loading for dense windows.
-    const pageLimit = more ? 1 : 3;
-    for (let page = 0; page < pageLimit; page++) {
-      const result = await pageRows(device, bounds, cursor, controller.signal);
+    // Render each page while keeping every request in the original time window.
+    do {
+      const result = await pageRows(device, bounds, cursor, controller);
       controller.signal.throwIfAborted();
       rows = rows.concat(result.rows);
       cursor = result.next;
@@ -84,8 +90,7 @@ async function load({ devices = false, more = false } = {}) {
       state.next = cursor;
       state.bounds = bounds;
       render();
-      if (cursor === null) break;
-    }
+    } while (cursor !== null);
     status(`Updated ${new Date().toLocaleTimeString()} · ${rows.length.toLocaleString()} stored reports loaded`);
   } catch (error) {
     if (controller !== state.controller) return;
@@ -97,7 +102,6 @@ async function load({ devices = false, more = false } = {}) {
     }
     status(controller.signal.aborted ? 'Loading timed out. Try again.' : error.message, true);
   } finally {
-    clearTimeout(timeout);
     if (controller === state.controller) { state.busy = false; $('refresh').disabled = false; $('load-more').disabled = false; }
   }
 }
