@@ -32,10 +32,12 @@ Deployment requires both repositories:
 4. Check `/login/` with a valid account, confirm `/metrics/` shows that host's
    reports, then sign out and verify refresh asks for sign-in.
 
-Metrics are paginated by insertion ID. Each refresh loads up to 20 pages of 500
-reports; any remaining history is explicitly marked partial with a Load older
-reports button. Time ranges use device observation timestamps, shown in the
-browser's local timezone. Touch totals sum interval counts, never boot totals.
+Metrics requests use the selected observation-time window, which defaults to
+the last 24 hours. The first page renders as soon as it arrives. The viewer
+automatically loads up to three pages of 500 reports within that window, then
+marks the period partial if more remain. Load older reports fetches one more
+page within the selected period. Choose a longer range to request earlier
+observations. Times are shown in the browser's local timezone. Touch totals sum interval counts, never boot totals.
 Intervals are included by their observation timestamp. Chart gaps longer than
 10 minutes stay disconnected. The display does not fabricate missing samples.
 

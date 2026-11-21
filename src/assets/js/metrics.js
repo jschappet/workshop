@@ -1,7 +1,7 @@
 import { inRange, series, sensorUrl } from './metrics-data.mjs';
 const meshcoreSchema = 'meshcore_message_count';
 const $ = id => document.getElementById(id);
-const state = { devices: [], rows: [], next: null, controller: null, busy: false, updated: null };
+const state = { devices: [], rows: [], next: null, bounds: null, controller: null, busy: false };
 const date = seconds => Number.isFinite(seconds) ? new Date(seconds * 1000).toLocaleString() : 'Unknown';
 function element(tag, text, className) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; }
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
@@ -13,12 +13,34 @@ async function request(name, params, signal) {
   await apiReady;
   return Alpine.store('api').call(name, params, null, { signal });
 }
-async function pageRows(device, cursor, signal) {
-  const page = await request('iot_device_metrics', { device_id: device, limit: 500, before_id: cursor }, signal);
-  if (!Array.isArray(page.metrics) || !(page.next_before_id === null || Number.isSafeInteger(page.next_before_id) && page.next_before_id > 0)) throw new Error('Unexpected metric response from the server.');
-  return page;
+async function pageRows(device, bounds, cursor, signal) {
+  const page = await request('iot_device_metrics', {
+    device_id: device,
+    limit: 500,
+    ...bounds,
+    ...(cursor && { before_id: cursor.id, before_observed_at: cursor.time }),
+  }, signal);
+  const id = page.next_before_id;
+  const time = page.next_before_observed_at;
+  if (!Array.isArray(page.metrics) ||
+      !(id === null && time === null ||
+        Number.isSafeInteger(id) && id > 0 && Number.isSafeInteger(time) &&
+        time >= bounds.since && time <= bounds.until)) {
+    throw new Error('Unexpected metric response from the server.');
+  }
+  if (id !== null && cursor && (time > cursor.time || time === cursor.time && id >= cursor.id)) {
+    throw new Error('The server returned a non-advancing page cursor.');
+  }
+  return { rows: page.metrics, next: id === null ? null : { id, time } };
+}
+function clearReadings() {
+  state.rows = [];
+  state.next = null;
+  state.bounds = null;
+  render();
 }
 async function load({ devices = false, more = false } = {}) {
+  if (more && !state.next) return;
   state.controller?.abort();
   const controller = new AbortController(); state.controller = controller;
   const timeout = setTimeout(() => controller.abort(), 30000);
@@ -27,6 +49,7 @@ async function load({ devices = false, more = false } = {}) {
   try {
     if (devices) {
       const list = await request('iot_devices', {}, controller.signal);
+      controller.signal.throwIfAborted();
       if (!Array.isArray(list.devices)) throw new Error('Unexpected device response from the server.');
       const previous = $('device').value;
       state.devices = list.devices;
@@ -36,36 +59,43 @@ async function load({ devices = false, more = false } = {}) {
         option.value = device.device_id; $('device').append(option);
       }
       if (list.devices.some(d => d.device_id === previous)) $('device').value = previous;
-      else { state.rows = []; state.next = null; render(); }
+      else clearReadings();
       $('device').disabled = !list.devices.length;
       if (!list.devices.length) $('device').append(element('option', 'No registered devices'));
     }
     const device = $('device').value;
     if (!state.devices.length) {
-      state.rows = []; state.next = null; render(); status('No devices yet. They will appear after sending a discovery or metric report.'); return;
+      clearReadings();
+      status('No devices yet. They will appear after sending a discovery or metric report.');
+      return;
     }
+    const until = Math.floor(Date.now() / 1000);
+    const bounds = more ? state.bounds : { since: until - Number($('range').value) * 3600, until };
     let cursor = more ? state.next : null;
-    let rows = more ? [...state.rows] : [];
-    const ids = new Set(rows.map(row => row.id));
-    // Bound each refresh. Never imply full-period totals while older pages remain.
-    for (let page = 0; page < 20; page++) {
-      const result = await pageRows(device, cursor, controller.signal);
-      for (const row of result.metrics) if (!ids.has(row.id)) { rows.push(row); ids.add(row.id); }
-      if (result.next_before_id !== null && cursor !== null && result.next_before_id >= cursor) throw new Error('The server returned a non-advancing page cursor.');
-      cursor = result.next_before_id;
+    let rows = more ? state.rows : [];
+    // Show the first page immediately and cap automatic loading for dense windows.
+    const pageLimit = more ? 1 : 3;
+    for (let page = 0; page < pageLimit; page++) {
+      const result = await pageRows(device, bounds, cursor, controller.signal);
+      controller.signal.throwIfAborted();
+      rows = rows.concat(result.rows);
+      cursor = result.next;
+      state.rows = rows;
+      state.next = cursor;
+      state.bounds = bounds;
+      render();
       if (cursor === null) break;
     }
-    if (controller.signal.aborted) return;
-    state.rows = rows; state.next = cursor; state.updated = new Date();
-    render(); status(`Updated ${state.updated.toLocaleTimeString()} · ${rows.length.toLocaleString()} stored reports loaded`);
+    status(`Updated ${new Date().toLocaleTimeString()} · ${rows.length.toLocaleString()} stored reports loaded`);
   } catch (error) {
     if (controller !== state.controller) return;
     if (error.status === 401 || error.status === 403) {
-      state.rows = []; state.devices = []; state.next = null; render();
+      state.devices = [];
+      clearReadings();
       status('Please sign in to view sensor metrics. Use the sign-in link above.', true);
       return;
     }
-    status(controller.signal.aborted ? 'Loading timed out. Check the API address and try again.' : `${error.message} Previously loaded readings, if any, have not been refreshed.`, true);
+    status(controller.signal.aborted ? 'Loading timed out. Try again.' : error.message, true);
   } finally {
     clearTimeout(timeout);
     if (controller === state.controller) { state.busy = false; $('refresh').disabled = false; $('load-more').disabled = false; }
@@ -121,16 +151,16 @@ function render() {
     const url = sensorUrl(selected.sensor_url); $('sensor-link').hidden = !url;
     if (url) $('sensor-link').href = url; else $('sensor-link').removeAttribute('href');
   }
-  const now = Date.now();
+  const now = (state.bounds?.until ?? Math.floor(Date.now() / 1000)) * 1000;
   const rows = inRange(state.rows, Number($('range').value), now);
   $('summary').replaceChildren(); $('charts').replaceChildren(); $('readings').replaceChildren();
-  $('coverage').textContent = state.next !== null ? 'Partial history loaded. Totals cover only loaded reports; load older reports to complete the selected period.' : `${rows.length.toLocaleString()} readings in this period. Times are shown in your local timezone.`;
+  $('coverage').textContent = !state.bounds ? '' : state.next !== null ? 'Partial period loaded. Totals cover only the reports shown.' : `${rows.length.toLocaleString()} readings in this period. Times are shown in your local timezone.`;
   $('load-more').hidden = state.next === null;
   const temperatures = series(rows, 'temperature', 'temperature_c'), humidity = series(rows, 'temperature', 'humidity_percent'), touches = series(rows, 'touch_count', 'count');
   if (temperatures.length) card('Latest temperature in period', `${temperatures.at(-1).value.toFixed(1)} °C`, new Date(temperatures.at(-1).time).toLocaleString());
   if (humidity.length) card('Latest humidity in period', `${humidity.at(-1).value.toFixed(1)}%`, new Date(humidity.at(-1).time).toLocaleString());
   if (touches.length) card(state.next !== null ? 'Touches in loaded reports' : 'Touches reported in period', touches.reduce((sum, point) => sum + point.value, 0).toLocaleString(), 'Sum of interval counts; totals since boot are not added.');
-  if (!rows.length) $('charts').append(element('p', 'No readings in this time range.', 'empty'));
+  if (!rows.length && state.bounds) $('charts').append(element('p', 'No readings in this time range.', 'empty'));
   chart('Temperature · °C', temperatures, '°C', now);
   chart('Humidity · %', humidity, '%', now);
   chart('Touches · per reporting interval', touches, 'touches', now, true);
@@ -155,8 +185,12 @@ function render() {
   }
 }
 $('refresh').addEventListener('click', () => load({ devices: true }));
-$('device').addEventListener('change', () => { state.rows = []; state.next = null; render(); load(); });
-$('range').addEventListener('change', render);
+function loadSelection() {
+  clearReadings();
+  return load({ devices: !state.devices.length });
+}
+$('device').addEventListener('change', loadSelection);
+$('range').addEventListener('change', loadSelection);
 $('load-more').addEventListener('click', () => load({ more: true }));
 setInterval(() => { if ($('auto-refresh').checked && !document.hidden && !state.busy) load({ devices: true }); }, 30000);
 load({ devices: true });
